@@ -1,6 +1,6 @@
 ---
-title: "Assignment 1"
-author: "Balaji Padmanathan - 22202290"
+title: "Euro Stat Crime Data - Exploratory Data Analysis"
+author: "Balaji Padmanathan"
 date: "2022-10-14"
 ---
 
@@ -9,9 +9,9 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60), tidy=TRUE)
 ```
 
-# Task 1: Manipulation
+# Manipulation
 
-### Question 1
+### 1
 
 Loading the "EurostatCrime2019.csv" dataset which contains offences (values per hundred thousand inhabitants) by offence category in 41 European Countries in 2019. After loading, using head() to check if the data is loaded correctly. 
 
@@ -30,7 +30,7 @@ row.names(Euro_Crime_2019)
 ```
 
 
-### Question 2
+### 2
 
 
 Displaying the size and the structure of the dataset.
@@ -43,7 +43,7 @@ str(Euro_Crime_2019)
 
 ```
 
-### Question 3 
+### 3 
 
 Removing the columns 'Rape' and 'Sexual.assault' from the dataset. After removing, checking the number of columns to ensure their removal.
 ```{r command1}
@@ -71,14 +71,14 @@ Euro_Crime_2019['Overall']
 ```
 
 
-### Question 4 
+### 4 
 
 Listing the countries that contain any missing data.
 ```{r missing}
 row.names(Euro_Crime_2019[rowSums(is.na(Euro_Crime_2019)) > 0,])
 ```
 
-### Question 5 
+### 5 
 
 Removing the countries that contain any missing data.
 ```{r removal}
@@ -86,7 +86,7 @@ Euro_Crime_2019 <- Euro_Crime_2019[rowSums(is.na(Euro_Crime_2019)) == 0, ]
 
 ```
 
-### Question 6
+### 6
 
 Checking the dimensions of the new dataframe. We can see that, after making these changes, there are now 22 observations (41 - 19) and 8 variables (Includes the column 'Overall' that was newly added)
 ```{r observations}
@@ -98,9 +98,9 @@ dim(Euro_Crime_2019)
 ```
 
 
-# Task 2: Analysis
+# Basic Analysis
 
-### Question 1
+### 1
 
 Finding the 3 most common crimes in Ireland in 2019 based on the revamped dataset.
 
@@ -109,7 +109,7 @@ Ireland <- t(apply(Euro_Crime_2019['Ireland',1:7], 1, function(x) head(sort(x, d
 colnames(Ireland)
 
 ```
-### Question 2
+### 2
 
 Finding the proportion of overall crimes that were due to Assault in Ireland in 2019
 
@@ -120,7 +120,7 @@ prop <- paste(round((100*assault)/overall,2),'%', sep="")
 prop
 
 ```
-### Question 3
+### 3
 
 
 Finding the country with the highest record of kidnapping in 2019 (per hundred thousand inhabitants)
@@ -129,7 +129,7 @@ kidnapping <- Euro_Crime_2019[order(-Euro_Crime_2019$Kidnapping),]
 row.names(kidnapping[1,])
 
 ```
-### Question 4
+### 4
 
 Finding the country with the lowest overall record of offences in 2019 (per hundred thousand
 inhabitants)
@@ -138,7 +138,7 @@ lowest <- Euro_Crime_2019[order(Euro_Crime_2019$Overall),]
 row.names(lowest[1,])
 
 ```
-### Question 5
+### 5
 
 Creating a plot to check the relationship between 'Robbery' and 'Unlawful acts involving
 controlled drugs or precursors' 
@@ -149,7 +149,7 @@ plot(Euro_Crime_2019$Unlawful.acts.involving.controlled.drugs.or.precursors, Eur
 
 ```
 
-# Task 3: Creativity
+# Insights
 
 ### Overall Offence Record
 
