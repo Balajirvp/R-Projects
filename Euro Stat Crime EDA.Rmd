@@ -1,0 +1,190 @@
+---
+title: "Assignment 1"
+author: "Balaji Padmanathan - 22202290"
+date: "2022-10-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60), tidy=TRUE)
+```
+
+# Task 1: Manipulation
+
+### Question 1
+
+Loading the "EurostatCrime2019.csv" dataset which contains offences (values per hundred thousand inhabitants) by offence category in 41 European Countries in 2019. After loading, using head() to check if the data is loaded correctly. 
+
+```{r dataload}
+Euro_Crime_2019 <- read.csv(file.choose())
+
+head(Euro_Crime_2019)
+```
+
+
+Reading the first column of the dataset as rownames and displaying it.
+```{r countries}
+rownames(Euro_Crime_2019) <- Euro_Crime_2019[,1]
+Euro_Crime_2019[,1] <- NULL
+row.names(Euro_Crime_2019)
+```
+
+
+### Question 2
+
+
+Displaying the size and the structure of the dataset.
+```{r shape}
+
+nrow(Euro_Crime_2019)
+ncol(Euro_Crime_2019)
+dim(Euro_Crime_2019)
+str(Euro_Crime_2019)
+
+```
+
+### Question 3 
+
+Removing the columns 'Rape' and 'Sexual.assault' from the dataset. After removing, checking the number of columns to ensure their removal.
+```{r command1}
+
+Euro_Crime_2019 <- subset(Euro_Crime_2019, select = -c(Rape,Sexual.assault))
+
+ncol(Euro_Crime_2019)
+```
+
+Removing the columns 'Theft', 'Theft.of.a.motorized.land.vehicle', 'Burglary', 'Burglary.of.private.residential.premises' from the dataset. After removing, checking the number of columns to ensure their removal.
+```{r command2}
+Euro_Crime_2019 <- subset(Euro_Crime_2019, select = -c(Theft, Theft.of.a.motorized.land.vehicle, Burglary, Burglary.of.private.residential.premises))
+
+ncol(Euro_Crime_2019)
+
+```
+
+Adding a new column 'Overall' containing the overall record of offences for each country (per hundred
+thousand inhabitants). Then checking to see if the column is present.
+```{r command3}
+Overall <- rowSums(Euro_Crime_2019, na.rm=TRUE)
+Euro_Crime_2019 <- cbind(Euro_Crime_2019, Overall)
+Euro_Crime_2019['Overall']
+
+```
+
+
+### Question 4 
+
+Listing the countries that contain any missing data.
+```{r missing}
+row.names(Euro_Crime_2019[rowSums(is.na(Euro_Crime_2019)) > 0,])
+```
+
+### Question 5 
+
+Removing the countries that contain any missing data.
+```{r removal}
+Euro_Crime_2019 <- Euro_Crime_2019[rowSums(is.na(Euro_Crime_2019)) == 0, ]
+
+```
+
+### Question 6
+
+Checking the dimensions of the new dataframe. We can see that, after making these changes, there are now 22 observations (41 - 19) and 8 variables (Includes the column 'Overall' that was newly added)
+```{r observations}
+
+nrow(Euro_Crime_2019)
+ncol(Euro_Crime_2019)
+dim(Euro_Crime_2019)
+
+```
+
+
+# Task 2: Analysis
+
+### Question 1
+
+Finding the 3 most common crimes in Ireland in 2019 based on the revamped dataset.
+
+```{r ireland1}
+Ireland <- t(apply(Euro_Crime_2019['Ireland',1:7], 1, function(x) head(sort(x, decreasing = TRUE), 3)))
+colnames(Ireland)
+
+```
+### Question 2
+
+Finding the proportion of overall crimes that were due to Assault in Ireland in 2019
+
+```{r ireland2}
+assault <- Euro_Crime_2019['Ireland','Assault']
+overall <- Euro_Crime_2019['Ireland','Overall']
+prop <- paste(round((100*assault)/overall,2),'%', sep="")
+prop
+
+```
+### Question 3
+
+
+Finding the country with the highest record of kidnapping in 2019 (per hundred thousand inhabitants)
+```{r kidnapping}
+kidnapping <- Euro_Crime_2019[order(-Euro_Crime_2019$Kidnapping),]
+row.names(kidnapping[1,])
+
+```
+### Question 4
+
+Finding the country with the lowest overall record of offences in 2019 (per hundred thousand
+inhabitants)
+```{r lowest}
+lowest <- Euro_Crime_2019[order(Euro_Crime_2019$Overall),]
+row.names(lowest[1,])
+
+```
+### Question 5
+
+Creating a plot to check the relationship between 'Robbery' and 'Unlawful acts involving
+controlled drugs or precursors' 
+
+```{r plot}
+
+plot(Euro_Crime_2019$Unlawful.acts.involving.controlled.drugs.or.precursors, Euro_Crime_2019$Robbery, xlab = 'Unlawful Acts involving Drugs', ylab = 'Robbery', main = 'Relationship between Robbery and Unlawful Acts Involving Drugs')
+
+```
+
+# Task 3: Creativity
+
+### Overall Offence Record
+
+Plotting the Top 10 countries with the highest Overall offence record.
+
+We can clearly see that Switzerland and Luxembourg have close to ~1000 offenses per hundred thousand inhabitants and make up the Top 2 countries in the EU. 
+
+```{r offences}
+overall <- Euro_Crime_2019[order(-Euro_Crime_2019$Overall),]
+row.names(overall)[4] = 'Germany'
+par(mar=c(8, 5, 3, 1))
+barplot(overall[1:10,]$Overall, names.arg = row.names(overall[1:10,]), main = 'Top 10 Countries with the highest Overall offence record', ylab = 'Overall offence records', ylim = c(0,1000), col = 'lightblue', las = 2)
+```
+
+
+### Proportion of Drug Related Offences
+
+Plotting the Top 10 countries with the highest proportion of 'Unlawful.acts.involving.controlled.drugs.or.precursors'
+
+Based on the plot, we can see that ~95% of the offenses from Switzerland are drug related which is the highest in EU. There are close to 6 countries that are hovering around the 80% mark. 
+
+```{r plot3}
+Unlawful_Perc <- round((100*Euro_Crime_2019[,'Unlawful.acts.involving.controlled.drugs.or.precursors'])/Euro_Crime_2019[,'Overall'],2)
+Euro_Crime_2019_New <- cbind(Euro_Crime_2019, Unlawful_Perc)
+
+Euro_Crime_2019_New <- Euro_Crime_2019_New[order(-Euro_Crime_2019_New$Unlawful_Perc),]
+par(mar=c(8, 5, 3, 3))
+barplot(Euro_Crime_2019_New[1:10,]$Unlawful_Perc, names.arg = row.names(Euro_Crime_2019_New[1:10,]), main = 'Top 10 Countries with the highest proportion of Drug related offences', ylab = 'Percentage of Overall records', ylim = c(0,100), col = 'lightgreen', las = 2)
+
+
+
+
+```
+
+
+
+
+
