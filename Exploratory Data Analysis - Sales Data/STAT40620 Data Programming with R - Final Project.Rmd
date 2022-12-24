@@ -1,0 +1,649 @@
+---
+title: <font color = 'green'><b><u>STAT40620 Data Programming with R - Final Project</u>:</b></font> 
+author: <font color = 'brown'><b>Balaji Padmanathan - 22202290</b></font>
+date: <font color = 'brown'><b>2022-12-22</b></font>
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# <font color = 'green'><i><u>Introduction</u>:</i></font>
+
+In this project, we will be performing Exploratory Data Analysis on a Sales Data set using R programming. The data set contains information about orders placed on an E-commerce website. The data was taken from the following link - <u>https://data.world/bobmajor/sales</u> 
+
+This project has three main parts: Analysis, R Package and Functions/Programming.
+
+# <font color = 'green'><i><u>Part 1: Analysis</u>:</i></font>
+
+### <font color = 'green'>1.1 Data Exploration:</font>
+
+Importing all the packages to be used in the project.
+
+```{r packages, message = FALSE}
+
+library(knitr)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(e1071)
+library(reshape2)
+library(tidyr)
+library(corrplot)
+
+```
+
+
+Used fread() from data.table to read the csv file and used head() to check if the data was loaded correctly. Also used str() to look at the structure of the data set. 
+
+Based on these function results, we can identify the following features about our data set -
+
+1) There are 5000 records and 13 variables/features
+2) There are a total of 7 numerical variables and 6 categorical variables
+3) The following 7 variables are numerical -
+    i) Order ID - Shows the Order ID and is a Discrete variable
+    ii) Units Sold - Shows the number of units sold of a particular item and is a Discrete variable
+    iii) Unit Price - Shows the per unit selling price of a particular item and is a Continuous variable
+    iv) Unit Cost - Shows the per unit cost of a particular item and is a Continuous variable
+    v) Total Revenue - Shows the total revenue of a particular item and is a Continuous variable
+    vi) Total Cost - Shows the total cost of a particular item and is a Continuous variable
+    vii) Total Profit - Shows the total profit (Total Revenue - Total Cost) for a particular item and is a Continuous variable
+4) The following 6 variables are categorical -
+    i) Region - Shows the region from which the order was placed and is a Nominal variable
+    ii) Country - Shows the country from which the order was placed and is a Nominal variable
+    iii) Item Type - Shows the type of item ordered and is a Nominal variable
+    iv) Sales Channel - Shows the type of item ordered and is a Nominal variable
+    v) Order Date - Shows the date when the item was ordered. Needs to be converted to a date variable
+    vi) Ship Date - Shows the date when the item was shipped Needs to be converted to a date variable
+5) There are no null/missing values in the data set
+
+
+```{r dataload}
+
+sales <- fread("C:\\Users\\balaj\\Desktop\\UCD\\Trimester 1\\STAT40620 Data Programming with R\\Project\\5000 Sales Records.csv")
+
+kable(head(sales))
+
+dim(sales)
+
+str(sales)
+
+# Checking the number of missing values in each column
+
+colSums(is.na(sales))
+
+
+```
+
+### <font color = 'green'>1.2 Feature Transformation</font>
+
+
+As mentioned in the previous section, we need to update the 'Order Date' and 'Ship Date' columns from categorical to date functions. Also, to aid in understanding the data set, we can create another feature called Order_Year based on the Order Date column, which will contain the year in which the Order was placed.
+
+After performing the transformation, please find below some information about these two date features -
+
+1) The earliest order date is '2010-01-01' while the latest order date is '2017-07-28'
+2) The earliest shipped date is '2010-01-06' while the latest shipped date is '2017-08-31'
+
+
+```{r update}
+
+# Checking the initial class type
+
+print(class(sales$`Order Date`))
+print(class(sales$`Ship Date`))
+
+
+# Converting the categorical variables to date variables
+
+sales$`Order Date` <- as.Date(sales$`Order Date`, "%m/%d/%Y")
+
+sales$`Ship Date` <- as.Date(sales$`Ship Date`, "%m/%d/%Y")
+
+
+# Checking to see if the update was successful
+
+print(class(sales$`Order Date`))
+print(class(sales$`Ship Date`))
+str(sales)
+
+# Creating an additional column containing the year in which the order was made
+
+sales$Order_Year <- format(sales$`Order Date`,"%Y")
+
+
+# Getting some basic info 
+
+summary(sales[, c(5,7)])
+
+```
+
+
+Now that we have finished doing some basic data exploration and feature transformation, let's perform Univariate and Multivariate analysis to gain deeper insights about the data set.
+
+
+### <font color = 'green'>1.3 Univariate Analysis</font>
+
+The term univariate analysis refers to the analysis of one variable. Some ways we can describe patterns found in Univariate data include central tendency (mean, mode and median) and dispersion: range , variance, maximum, minimum, quartiles (including the interquartile range), and standard deviation.
+
+Let's perform a deep-dive into each of the features to gain a better understanding of the sales data. 
+
+Based on our deep-dives, please see below our findings -
+
+#### <b>Categorical Variables</b>
+
+
+<u><i>Region</i></u>
+
+1) There are a total of 7 unique values for Region and they are -\
+    Asia, Australia and Oceania, Central America and the Caribbean, Europe, Middle East and North Africa, North America, Sub-Saharan Africa
+2) Europe has the highest number of orders followed closely by Sub-Saharan Africa while North America has the lowest number of orders
+    
+<u><i>Country</i></u>
+
+1) There are a a total of 185 unique countries in the data set
+2) Andorra and San Marino have the highest number of orders, with the top 15 countries having order count between 34-40
+
+<u><i>Item Type</i></u>
+
+1) There are a total of 12 unique values for Item Type and they are -\
+    Baby Food, Beverages, Cereal, Clothes, Cosmetics, Fruits, Household, Meat, Office Supplies, Personal Care, Snacks, Vegetables
+2) Beverages and Fruits have the highest number of orders, while Cereal has the lowest number of orders, with all the item types having order count between 385-447
+    
+<u><i>Sales Channel</i></u>
+
+1) There are a total of 2 unique values for Sales Channel and they are -\
+    Offline, Online
+2) Both Online and Offline have almost the same number of orders with Offline orders having a slightly higher count (2504 > 2496)
+
+<u><i>Order Date</i></u>
+
+1) The number of records has been almost consistent over time with 2017 having the lowest number of records (since 2017 doesn't have the complete year's data)
+
+
+```{r categorical, fig.width = 10, message = FALSE}
+
+# Checking the unique counts for categorical variables
+
+for (i in c(1:4,6))
+{
+  print(paste('Number of unique values in', names(sales)[i], 'is', n_distinct(sales[,..i]) ))
+}
+
+# Getting the unique values for the categorical variables
+
+for (i in c(1,3,4))
+{
+  cat(paste('The unique values for', names(sales)[i], 'are', unique(sales[,..i])[order(unique(sales[,..i]))] ), sep="\n")
+}
+
+# Plotting the Categorical variables
+
+sales2 <- data.frame(sales)
+
+# Region
+
+setDT(sales2)[, counts := .N, by = `Region`]
+
+ggplot(data=sales2, aes(fct_infreq(Region))) + geom_bar(fill="steelblue", color="black", stat="count", width = 0.75) + ggtitle("Distribution of Region based on Number of records") + stat_summary(data = sales2, aes(label = counts, y = 1.05*max(counts)), geom = "text") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Region", y="Number of records")
+
+# Country (Top 15)
+
+setDT(sales2)[, counts := .N, by = `Country`]
+
+Country <- aggregate(`Order ID` ~ Country, sales, length)
+Country <- Country[order(Country$`Order ID`, decreasing = TRUE), ] 
+Country2 <- Country[1:15,]
+
+
+ggplot(data=Country2, aes(x = reorder(Country, -`Order ID`), y = `Order ID`) ) + geom_bar(fill="steelblue", color="black", stat="identity", width = 0.75) + ggtitle("Distribution of Top 15 Countries based on Number of records") + stat_summary(data = Country2, aes(label = `Order ID`, y = 1.05*max(`Order ID`)), geom = "text") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Country", y="Number of records")
+  
+# Item Type
+
+setDT(sales2)[, counts := .N, by = `Item.Type`]
+
+ggplot(data=sales2, aes(fct_infreq(Item.Type))) + geom_bar(fill="steelblue", color="black", stat="count", width = 0.75) + ggtitle("Distribution of Item Type based on Number of records") + stat_summary(data = sales2, aes(label = counts, y = 1.05*max(counts)), geom = "text") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Item Type", y="Number of records") 
+
+
+# Sales Channel
+
+setDT(sales2)[, counts := .N, by = `Sales.Channel`]
+
+ggplot(data=sales2, aes(fct_infreq(Sales.Channel))) + geom_bar(fill="steelblue", color="black", stat="count", width = 0.75) + ggtitle("Distribution of Sales Channel based on Number of records") + stat_summary(data = sales2, aes(label = counts, y = 1.05*max(counts)), geom = "text") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Sales Channel", y="Number of records") 
+
+# Order Date
+
+sales2$Order.Year <- format(sales$`Order Date`,"%Y")
+
+setDT(sales2)[, counts := .N, by = `Order.Year`]
+
+ggplot(data=sales2, aes(Order.Year)) + geom_bar(fill="steelblue", color="black", stat="count", width = 0.75) + ggtitle("Distribution of Orders over Time") + stat_summary(data = sales2, aes(label = counts, y = 1.05*max(counts)), geom = "text") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Order Year", y="Number of records") 
+
+```
+
+
+#### <b>Numerical Variables</b>
+
+<u><i>Order ID</i></u>
+
+1) There are a total of 5000 unique orders - Each record in the data set corresponds to 1 order
+
+<u><i>Units Sold</i></u>
+
+1) The minimum number of units sold is 2 while the maximum number of units sold is 9999
+2) The mean number of units sold is 5031 while the median number number of units sold is 5123 
+3) The Units Sold feature is slightly negatively skewed. But since the value is very low (-0.02), we can say that the feature follows a normal distribution, which is clearly seen in the boxplot
+
+<u><i>Unit Price</i></u>
+
+1) The minimum unit price is 9.33 while the maximum unit price is 668.27
+2) The mean unit price is 265.75 while the median unit price is 154.06 indicating that the feature is positively skewed 
+3) The Unit Price feature is highly positively skewed (~0.72), which can be clearly seen in the boxplot
+
+<u><i>Unit Cost</i></u>
+
+1) The minimum unit cost is 6.92 while the maximum unit cost is 524.96
+2) The mean unit cost is 265.75 while the median unit cost is 154.06 indicating that the feature is positively skewed 
+3) The Unit Cost feature is highly positively skewed (~0.88), which can be clearly seen in the boxplot
+
+
+<u><i>Total Revenue</i></u>
+
+1) The minimum total revenue is 65 while the maximum total revenue is 6,672,676
+2) The mean total revenue is 1,325,738 while the median total revenue is 779,409 indicating that the feature is positively skewed 
+3) The Total Revenue feature is highly positively skewed (~1.57) and contains plenty of outliers, as seen in the boxplot
+
+<u><i>Total Cost</i></u>
+
+1) The minimum total cost is 48 while the maximum total cost is 5,248,025  
+2) The mean total cost is 933,093 while the median total cost is 468,181 indicating that the feature is positively skewed 
+3) The Total Cost feature is highly positively skewed (~1.75) and contains plenty of outliers, as seen in the boxplot
+
+<u><i>Total Profit</i></u>
+
+1) The minimum total profit is 16.9 while the maximum total profit is 1,726,007.5  
+2) The mean total profit is 392,644.6 while the median total profit is 279,095.2 indicating that the feature is positively skewed 
+3) The Total Profit feature is highly positively skewed (~1.26) and contains plenty of outliers, as seen in the boxplot
+
+
+
+```{r numerical, fig.width = 10, message = FALSE}
+
+
+# Getting detailed summary/info about each numerical column
+
+summary(sales[, c(8:13)])
+
+
+# Getting the skewness of the data
+
+skew_val <- apply(sales[, c(8:13)], 2, skewness)
+print(skew_val)
+
+# Plotting the numerical data
+
+sales4 <- sales[,8]
+sales5 <- sales[,9:10]
+sales6 <- sales[,11:12]
+sales7 <- sales[,13]
+
+ggplot(data = melt(sales4), aes(x=variable, y=value)) + geom_boxplot(aes(fill=variable)) + ggtitle("Boxplot of Units Sold") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(data = melt(sales5), aes(x=variable, y=value)) + geom_boxplot(aes(fill=variable)) + ggtitle("Boxplot of Unit Price and Unit Cost") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(data = melt(sales6), aes(x=variable, y=value)) + geom_boxplot(aes(fill=variable)) + ggtitle("Boxplot of Total Revenue and Total Cost") + theme(plot.title = element_text(hjust = 0.5))
+ggplot(data = melt(sales7), aes(x=variable, y=value)) + geom_boxplot(aes(fill=variable)) + ggtitle("Boxplot of Total Profit") + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+
+### <font color = 'green'>1.4 Multivariate Analysis</font>
+
+
+Multivariate analysis is concerned with the interrelationships among several variables. The data may be metrical, categorical, or a mixture of the two. Multivariate data may be, first, summarized by looking at the pair-wise associations. Beyond that, different methods are available to explore and elucidate different features of the data. Here, we can look at a few important relationships between the features to gain a deeper understanding about the data set.
+
+Please find below the key findings from our analysis -
+
+1) Unit Price and Unit Cost are highly correlated (0.99) but this to be expected as usually, Price is set based on the Cost of a product
+2) Similarly, Total Revenue, Total Cost and Total Profit are all highly correlated with each other as expected
+3) Sub-Saharan Africa and Europe have the highest number of units sold while North America has the lowest. The same trend is seen in terms of Total Profit as well
+4) But, if we look at the Profit per unit sold, North America is the leading region followed by Australia. But the trend is quite uniform across regions with the level lying between 75-85 
+5) For items like Fruits, Beverages and Personal Care, there's little to no relationship between Units Sold and Total Profit. Whereas, for Cosmetics and Household items, there exists almost a linear relationship between the two
+6) Similarly, Fruits, Beverages and Personal Care have a very limited profit scale and range whereas Cosmetics and Household items have the highest profit scale and range
+7) Total Profit over Time is pretty consistent and doesn't seem to have too many fluctuations
+8) Similarly, Units Sold over Time is also pretty consistent 
+
+
+
+```{r multi, fig.width = 10}
+
+# Getting the correlation matrix of all numerical variables (rounded to 2 decimal places)
+
+round(cor(sales[,8:13]), 2)
+
+
+# Plotting Region level Multivariate Data
+
+grp_region <- sales %>% group_by(Region)  %>%
+                    summarise(total_units = sum(`Units Sold`),
+                              total_profits = sum(`Total Profit`),
+                              .groups = 'drop')
+
+grp_region$profit_per_unit <- round(grp_region$total_profits/grp_region$total_units, 2)
+
+
+ggplot(data=grp_region, aes(x = reorder(Region, -total_units), y = total_units)) + geom_bar(fill="orange", color="black", stat="identity", width = 0.75) + ggtitle("Distribution of Units Sold across Regions") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Region", y="Number of Units Sold") 
+
+
+ggplot(data=grp_region, aes(x = reorder(Region, -total_profits), y = total_profits)) + geom_bar(fill="orange", color="black", stat="identity", width = 0.75) + ggtitle("Distribution of Total Profit across Regions") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Region", y="Total Profit") 
+
+
+ggplot(data=grp_region, aes(x = reorder(Region, -profit_per_unit), y = profit_per_unit)) + geom_bar(fill="orange", color="black", stat="identity", width = 0.75) + ggtitle("Distribution of Profit per unit sold across Regions") +
+theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Region", y="Profit per Unit Sold") 
+
+
+# Plotting Item Type level Multivariate data
+
+ggplot(data=sales, aes(x = `Units Sold`, y = `Total Profit`, color = `Item Type`)) + geom_line(size=1.5) + ggtitle("Units Sold vs Total Profit for different Item Types") + theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Units Sold", y="Total Profit") 
+
+ggplot(data=sales, aes(x = `Item Type`, y = `Total Profit`, fill = `Item Type`)) + geom_boxplot() + ggtitle("Boxplot of Total Profit for different Item Types") + theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Item Type", y="Total Profit") 
+
+ggplot(data=sales, aes(x = `Total Cost`, y = `Total Profit`, color = `Item Type`)) + geom_line(size=1.5) + ggtitle("Total Cost vs Total Profit for different Item Types") + theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Total Cost", y="Total Profit")
+
+
+# Plotting Year level Multivariate Data
+
+ggplot(data=sales, aes(x = `Order_Year`, y = `Total Profit`, fill = `Order_Year`)) + geom_boxplot() + ggtitle("Boxplot of Total Profit over Time") + theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Year", y="Total Profit") 
+
+ggplot(data=sales, aes(x = `Order_Year`, y = `Units Sold`, fill = `Order_Year`)) + geom_boxplot() + ggtitle("Boxplot of Units Sold over Time") + theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 0.5)) + labs(x="Year", y="Units Sold") 
+
+
+```
+
+These are some high-level insights we can see based on our analysis. This concludes our section on Exploratory Data Analysis. Now let's proceed to the next section.
+
+
+# <font color = 'green'><i><u>Part 2: R Package</u>:</i></font>
+
+### <font color = 'green'>tidyr</font>
+
+In this section, we are going to take a look at the tidyr package and demonstrate some of the key functionality of the package using our data set. tidyr provides a set of functions that help us get to tidy data. Tidy data is any data with a consistent form: in brief, every variable goes in a column, and every column is a variable. Tidy data describes a standard way of storing data that is used wherever possible throughout the tidyverse. If we ensure that our data is tidy, we'll spend less time fighting with the tools and more time working on the analysis. That's where tidyr helps majorly by converting into a tidy form. Let's take a look at some of it's key functions:
+
+### <font color = 'green'>2.1 Reshape Data</font>
+
+<i><b>pivot_wider</b></i>
+
+pivot_wider widens data by using values from one column and expanding into several new columns. This results in the new table having more columns than the original table. To make it clear, in our example, the column 'Order_Year' was split into 8 new columns, 1 for each year and their corresponding values were used as values to populate these new columns.
+
+<i><b>pivot_longer</b></i>
+
+pivot_longer lengthens the data by collapsing several columns into two columns. To make it clear, in our example, all the different years (2010, 2011, .. 2017) combined to create a single column named 'Order Year' and their corresponding values were combined into a single column named 'total_units'. This function results in having more rows and lesser columns than what we started with.
+
+```{r reshape}
+
+# Creating a subset of the sales data to showcase the tidyr functions
+
+sales_sub <- sales %>% group_by(Region, Order_Year)  %>%
+                    summarise(total_units = sum(`Units Sold`),
+                              .groups = 'drop')
+
+kable(head(sales_sub))
+
+dim(sales_sub)
+
+# pivot_wider
+
+data <- pivot_wider(sales_sub, names_from = Order_Year, values_from = `total_units`)
+
+kable(head(data))
+
+dim(data)
+
+# pivot_longer
+
+data2 <- pivot_longer(data, cols = 2:9, names_to = 'Order_Year', values_to = 'total_units')
+
+kable(head(data2))
+
+dim(data2)
+
+```
+
+### <font color = 'green'>2.2 Expand Tables</font>
+
+<i><b>expand</b></i>
+
+expand creates a new tibble with all possible combinations of the values of the selected columns while dropping the remaining columns. In our example, it lists all possible combinations of 'Region' and 'Item Type' and hence creates a tibble containing 84 records (7 Regions x 12 Item Types) while dropping all the remaining columns.
+
+<i><b>complete</b></i>
+
+complete adds missing possible combinations of values of variables listed in the function , while filling the remaining variables with NA. In our example, we have created all possible combinations of Region and Country while filling all the remaining variables with NA wherever no values are available. For instance, for the region Asia, all the countries that fall outside of Asia are also used to create combinations and hence all their corresponding column values are NA.
+
+```{r expand}
+
+# expand
+
+dim(sales)
+
+data3 <- expand(sales, Region, `Item Type`)
+
+kable(head(data3))
+
+dim(data3)
+
+# complete
+
+data4 <- complete(sales, Region, Country)
+
+kable(head(data4))
+
+dim(data4)
+
+
+
+```
+
+
+### <font color = 'green'>2.3 Handle Missing Values</font>
+
+
+<i><b>drop_na</b></i>
+
+drop_na drops rows containing NAs for the specified column. In our example, all the rows containing NAs for the column 'Item Type' were dropped leading to the table size changing from 6110 to 5000
+
+
+<i><b>replace_na</b></i>
+
+replace_na uses a specific value to replace NA in selected columns. In our example, we have replaced all the rows with NA values to zero for the columns between 'Units Sold' and 'Total Profit'. As we can see, the other columns which were not included continue to have NA as their value, while the specified columns have now become zero.
+
+
+```{r missing}
+
+# Using the table data4 created in the previous section
+
+# drop_na
+
+dim(data4)
+
+data5 <- drop_na(data4, `Item Type`)
+
+kable(head(data5))
+
+dim(data5)
+
+# replace_na 
+
+data6 <- mutate(data4, across(`Units Sold`:`Total Profit`, ~replace_na(.x, 0)))
+
+kable(head(data6))
+
+dim(data6)
+
+
+```
+
+### <font color = 'green'>2.4 Split Cells</font>
+
+<i><b>unite</b></i>
+
+unite collapses cells across several columns into a single column. In our example, the columns Country and Region were combined into a single column named Destination and were separated by the symbol "-"
+
+
+<i><b>separate</b></i>
+
+separate breaks values in a column into several new columns. In our example, the values from Destination column is split into two new columns Country and Region with the help of the separator ("-")
+
+
+
+```{r split}
+
+# unite
+
+dim(sales)
+
+data7 <- unite(sales, Country, Region, col = 'Destination', sep = " - ")
+
+kable(head(data7))
+
+dim(data7)
+
+# separate
+
+data8 <- separate(data7, Destination, sep = " - ", into  = c('Country', 'Region'))
+
+kable(head(data8))
+
+dim(data8)
+
+```
+
+
+
+# <font color = 'green'><i><u>Part 3: Functions/Programming</u>:</i></font>
+
+
+### <font color = 'green'>Print Method</font>
+
+Here we are creating a method for printing the results for the correlation function we'll be creating down the line. We'll be calling this method inside the correlation function directly so that this function is called to print the results.
+
+
+```{r print}
+
+print.sales_info <- function(data)
+{
+  cat(paste("Correlation results for the dateset:", sep ="\n"))
+  cat("\n")
+  print(data)
+  cat("\n")
+  
+}
+
+```
+
+
+### <font color = 'green'>Summary Method</font>
+
+Here we are creating a method for showing the summary of the dataset used for the correlation function. We'll be calling this method inside the correlation function directly so that this function is called to print the summary.
+
+
+```{r summary}
+
+summary.sales_info <- function(data)
+{
+  cat(paste("Summary of the dataset used for Correlation analysis:", sep ="\n"))
+  cat("\n")
+  print(summary(data))
+  cat("\n")
+  
+}
+
+```
+
+
+### <font color = 'green'>Plot Method</font>
+
+Here we are creating a method for printing the results for the correlation function we'll be creating down the line. We'll be calling this method inside the correlation function directly so that this function is called to print the results.
+
+
+```{r plot}
+
+plot.sales_info <- function(data)
+{
+  cat(paste("Plot of the Correlation matrix:", sep ="\n"))
+  cat("\n")
+  corrplot(data, method="circle", type = "upper", diag = FALSE, title = "Correlation Matrix for Numerical Variables from the Sales Data", mar=c(0,0,1,0)) 
+
+}
+
+```
+
+
+
+### <font color = 'green'>Statistical Analysis Function - Correlation</font>
+
+Here, initially, we're creating a S3 class called sales_info. Then, we're creating a method for the created class called 'correlation_analysis' to show information about the correlation between each numerical variable (using the cor function). 
+
+Then we're calling the print, summary and plot functions created to display the results from the correlation function.
+
+Finally, we are calling this function on our data to see if it's able to show us the different correlation coefficients along with their summary and plots.
+
+
+```{r stats, warning = FALSE, fig.width = 10}
+
+class(sales) <- "sales_info"
+
+correlation_analysis.sales_info <- function(data) 
+{
+  # Getting the correlation values using cor function
+  info <- data[,8:13]
+  correlation_values <- round(cor(info),2)
+  
+  # Calling the print function to display the results
+  print.sales_info(correlation_values)
+  
+  # Calling the summary function to display the summary of the results
+  summary.sales_info(info)
+  
+  # Calling the plot function to plot the results
+  plot.sales_info(correlation_values)
+
+}
+
+correlation_analysis.sales_info(sales2)
+
+```
+
+
+Based on the analysis, we can see that Unit Price and Unit Cost are highly correlated (0.99) but this to be expected as usually, Price is set based on the Cost of a product. Similarly, Total Revenue, Total Cost and Total Profit are all highly correlated with each other as expected.
+This concludes our Deep-dive into the sales data using R. In the next section, I have cited the important packages used in this project. 
+
+
+# <font color = 'green'><i><u>Citation</u>:</i></font>
+
+```{r citation, message = FALSE}
+
+citation("data.table") # Used it to perform faster data frame operations
+
+citation("forcats") # Used it to handle categorical variables
+
+citation("e1071") # Used it to get skewness
+
+citation("reshape2") # Used melt from reshape2 to change the shape of the data
+
+citation("tidyr") # Used it for question 2 and to make the data tidy
+
+citation("corrplot") # Used it to get the correlation matrix plot 
+
+```
+
+
